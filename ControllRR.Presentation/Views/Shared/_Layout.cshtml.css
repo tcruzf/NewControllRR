@@ -1,0 +1,124 @@
+﻿/* Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification
+for details on configuring this project to bundle and minify static web assets. */
+
+a.navbar-brand {
+  white-space: normal;
+  text-align: center;
+  word-break: break-all;
+}
+
+a {
+  color: #0077cc;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+.border-top {
+  border-top: 1px solid #e5e5e5;
+}
+.border-bottom {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.box-shadow {
+  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+}
+
+button.accept-policy {
+  font-size: 1rem;
+  line-height: inherit;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  white-space: nowrap;
+  line-height: 60px;
+}
+@keyframes highlightUpdate {
+  from { background-color: #e6ffe6; }
+  to { background-color: transparent; }
+}
+
+.updated-row {
+  animation: highlightUpdate 1.5s;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+/* Ajusta campos de formulário para usar espaço horizontal */
+.form-control {
+  width: 100%;
+}
+
+/* Tabelas ocupam 100% do espaço */
+.table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Textarea ocupa altura máxima */
+textarea.form-control {
+  min-height: 300px;
+  resize: vertical;
+}
+.chart canvas {
+  max-height: 400px;
+  min-height: 250px;
+}
+
+#loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.9);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.3s;
+}
+
+.loading-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Adicione em site.css */
+.input-validation-error {
+  border-color: #dc3545;
+  background-image: url("data:image/svg+xml,...");
+}
+
+.field-validation-error {
+  color: #dc3545;
+  font-size: 0.875em;
+}
+
+#loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}

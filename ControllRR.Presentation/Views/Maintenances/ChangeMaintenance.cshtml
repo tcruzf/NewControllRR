@@ -1,0 +1,268 @@
+@model ControllRR.Presentation.ViewModels.MaintenanceViewModel;
+
+  <div class="container-fluid px-4">
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+        <li class="breadcrumb-item active">Arquivos</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-edit me-1"></i>
+            Editar Manutenção
+        </div>
+        <div class="card-body">
+            @await Html.PartialAsync("Partials/_MaintenanceForm", Model)
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+
+    <script>
+        function atualizarIndices() {
+            const tabela = document.querySelector("#productsTable tbody");
+            // Filtra apenas as linhas visíveis (não removidas)
+            const linhasVisiveis = Array.from(tabela.rows).filter(row => row.style.display !== 'none');
+            
+            linhasVisiveis.forEach((row, index) => {
+                const totalExistente = @(Model.MaintenanceDto.MaintenanceProducts?.Count ?? 0);
+                const novoIndex = totalExistente + index;
+                
+                row.querySelector("input[name*='StockId']").name = `MaintenanceDto.MaintenanceProducts[${novoIndex}].StockId`;
+                row.querySelector("input[name*='QuantityUsed']").name = `MaintenanceDto.MaintenanceProducts[${novoIndex}].QuantityUsed`;
+                });
+             }
+
+        function adicionarProduto(produto) {
+            const tabela = document.querySelector("#productsTable tbody");
+            const totalExistente = @(Model.MaintenanceDto.MaintenanceProducts?.Count ?? 0);
+            const index = totalExistente + tabela.rows.length;
+            
+            const novaLinha = tabela.insertRow();
+            novaLinha.innerHTML = `
+                <td>
+                    ${produto.productName}
+                    <input type="hidden" 
+                           name="MaintenanceDto.MaintenanceProducts[${index}].StockId" 
+                           value="${produto.id}" />
+                </td>
+                <td>
+                    <input type="number" 
+                           name="MaintenanceDto.MaintenanceProducts[${index}].QuantityUsed" 
+                           value="1" 
+                           min="1" 
+                           max="${produto.productQuantity}" 
+                           class="form-control" />
+                </td>
+                <td>
+                    <button type="button" class="btn btn-danger" onclick="removerProduto(this)">Remover</button>
+                </td>
+            `;
+        }
+
+        // Função para remover produtos novos
+        function removerProduto(botao) {
+            const linha = botao.closest("tr");
+            linha.remove();
+            atualizarIndices();
+        }
+
+        // Função para remover produtos existentes
+        function removerProdutoExistente(botao) {
+            const linha = botao.closest("tr");
+            //linha.querySelector("input[name*='StockId']").name = "__DELETE__";
+            linha.querySelectorAll("input").forEach(input => {
+                input.name = "__DELETE__"; 
+           });
+            linha.style.display = "none";
+        }
+
+        // Autocomplete para dispositivos
+        $(document).ready(function () {
+            $("#deviceSearch").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '/Devices/Search',
+                        type: 'GET',
+                        data: { term: request.term },
+                        success: function (data) {
+                            response(data.map(device => ({
+                                label: `${device.model} (${device.serialNumber}) - ${device.identifier}`,
+                                value: device.id
+                            })));
+                        }
+                    });
+                },
+                select: function (event, ui) {
+                    $("#deviceSearch").val(ui.item.label);
+                    $("#deviceId").val(ui.item.value);
+                    return false;
+                }
+            });
+        });
+
+        // Busca de produtos
+        document.getElementById("productSearch").addEventListener("input", function () {
+            let query = this.value;
+            if (query.length < 2) return;
+            
+            fetch(`/Stocks/Search?term=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    let suggestions = document.getElementById("productSuggestions");
+                    suggestions.innerHTML = "";
+                    data.forEach(produto => {
+                        let item = document.createElement("div");
+                        item.classList.add("list-group-item", "list-group-item-action");
+                        item.textContent = `${produto.productName} - Qtd: ${produto.productQuantity}`;
+                        item.addEventListener("click", function () {
+                            adicionarProduto(produto);
+                        });
+                        suggestions.appendChild(item);
+                    });
+                })
+                .catch(error => console.error('Erro ao buscar produtos:', error));
+        });
+
+        $(document).ready(function () {
+            // Configuração global AJAX
+            $.ajaxSetup({
+                beforeSend: function () {
+                    $('#loadingOverlay').show()
+                },
+                complete: function () {
+                    $('#loadingOverlay').hide()
+                }
+            })
+
+            // Submit do formulário
+            $('#mainForm').submit(async function (e) {
+                e.preventDefault()
+
+                // Validação client-side
+                if (!$(this).valid()) {
+                    alert('Corrija os erros antes de enviar!')
+                    return
+                }
+
+                try {
+                    const formData = new FormData(this)
+                    const response = await fetch($(this).attr('action'), {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        }
+                    })
+
+                    if (!response.ok) throw response
+                    
+                    const result = await response.json()
+                    if (result.redirect) {
+                        window.location.href = result.redirect
+                    }
+                } catch (error) {
+                    if (error.status === 400) {
+                        const errors = await error.json()
+                        showValidationErrors(errors)
+                    } else {
+                        alert('Erro na requisição: ' + error.statusText)
+                    }
+                }
+            })
+
+            function showValidationErrors(errors) {
+                // Limpa erros anteriores
+                $('.field-validation-error').empty()
+                $('.input-validation-error').removeClass('input-validation-error')
+
+                // Mostra novos erros
+                if (errors.errors) {
+                    Object.entries(errors.errors).forEach(([key, messages]) => {
+                        const $field = $(`[name="${key}"]`)
+                        const $validationSpan = $field.siblings('.field-validation-error')
+                        
+                        $field.addClass('input-validation-error')
+                        $validationSpan.html(messages.join('<br>'))
+                    })
+                }
+            }
+        })
+
+
+        $(document).ready(function() {
+    const $form = $('#mainForm');
+    const $loading = $('#loadingOverlay');
+
+    // Configuração global do AJAX
+    $.ajaxSetup({
+        beforeSend: function() {
+            $loading.show();
+        },
+        complete: function() {
+            $loading.hide();
+        }
+    });
+
+    // Submit do formulário
+    $form.submit(async function(e) {
+        e.preventDefault();
+
+        // Validação client-side
+        if (!$form.valid()) {
+            $form.validate().focusInvalid();
+            return;
+        }
+
+        try {
+            const formData = new FormData(this);
+            const response = await fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                window.location.href = result.redirect;
+            } else {
+                showValidationErrors(result.errors);
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('Ocorreu um erro durante o processamento');
+        }
+    });
+
+    // Atualização dinâmica da tabela de produtos
+    async function updateProductsTable() {
+        const maintenanceId = $('#MaintenanceDto_Id').val();
+        $('#products-table').load(
+            '@Url.Action("GetProductsTable", "Maintenances")',
+            { maintenanceId: maintenanceId }
+        );
+    }
+
+    // Mostrar erros de validação
+    function showValidationErrors(errors) {
+        $('.field-validation-error').empty();
+        $('.input-validation-error').removeClass('input-validation-error');
+
+        $.each(errors, function(field, messages) {
+            const $input = $(`[name="${field}"]`);
+            const $errorSpan = $input.siblings('.field-validation-error');
+            
+            $input.addClass('input-validation-error');
+            $errorSpan.html(messages.join('<br>'));
+        });
+    }
+});
+    </script>
+}
